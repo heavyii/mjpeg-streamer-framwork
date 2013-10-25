@@ -305,7 +305,7 @@ void *worker_thread(void *arg)
 void worker_cleanup(void *arg)
 {
     static unsigned char first_run = 1;
-
+    void *frame = NULL;
     if(!first_run) {
         DBG("already cleaned up ressources\n");
         return;
@@ -325,6 +325,13 @@ void worker_cleanup(void *arg)
     if(rc == -1) {
         perror("could not close filedescriptor");
     }
+
+    pthread_mutex_lock(&pglobal->in[plugin_number].db);
+    while ((frame = fifo_out(&pglobal->in[plugin_number].db_frame)) != NULL) {
+    	DBG("free data @%p\n", frame);
+    	free(frame);
+    }
+    pthread_mutex_unlock(&pglobal->in[plugin_number].db);
 }
 
 

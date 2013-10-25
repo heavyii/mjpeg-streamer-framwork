@@ -47,9 +47,8 @@
 
 static pthread_t worker;
 static globals *pglobal;
-static int fd, delay, ringbuffer_size = -1, ringbuffer_exceed = 0, max_frame_size;
+static int fd, delay, ringbuffer_size = -1, ringbuffer_exceed = 0;
 static char *folder = "/tmp";
-static unsigned char *frame = NULL;
 static char *command = NULL;
 static int input_number = 0;
 
@@ -82,7 +81,7 @@ Return Value: -
 void worker_cleanup(void *arg)
 {
     static unsigned char first_run = 1;
-
+    void *frame = NULL;
     if(!first_run) {
         DBG("already cleaned up ressources\n");
         return;
@@ -90,6 +89,13 @@ void worker_cleanup(void *arg)
 
     first_run = 0;
     OPRINT("cleaning up ressources allocated by worker thread\n");
+
+    pthread_mutex_lock(&pglobal->in[input_number].db);
+    while ((frame = fifo_out(&pglobal->in[input_number].db_frame)) != NULL) {
+    	DBG("free data @%p\n", frame);
+    	free(frame);
+    }
+    pthread_mutex_unlock(&pglobal->in[input_number].db);
 
     if(frame != NULL) {
         free(frame);
@@ -196,12 +202,10 @@ Return Value:
 ******************************************************************************/
 void *worker_thread(void *arg)
 {
-    int ok = 1, frame_size = 0, rc = 0;
+    int ok = 1, rc = 0;
     char buffer1[1024] = {0}, buffer2[1024] = {0};
     unsigned long long counter = 0;
-    time_t t;
     struct tm *now;
-    unsigned char *tmp_framebuffer = NULL;
 
     /* set cleanup handler to cleanup allocated ressources */
     pthread_cleanup_push(worker_cleanup, NULL);
