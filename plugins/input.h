@@ -37,7 +37,6 @@ struct _input_parameter {
 };
 
 typedef struct _sample_data input_data;
-
 struct _sample_data {
 	int id; /* card id */
 	time_t t; /* sample time */
@@ -61,7 +60,7 @@ struct _input {
     pthread_mutex_t db;
     pthread_cond_t  db_update;
 
-    /* global data frame, this is more or less the "database" */
+    /* global data frame fifo queue, this is more or less the "database" */
     struct fifo_node *db_frame;
 
     int formatCount;
