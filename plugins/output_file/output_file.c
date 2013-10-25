@@ -40,6 +40,7 @@
 #include <dirent.h>
 
 #include "../../utils.h"
+#include "../../fifo_list.h"
 #include "../../mjpg_streamer.h"
 
 #define OUTPUT_PLUGIN_NAME "FILE output plugin"
@@ -206,47 +207,40 @@ void *worker_thread(void *arg)
     pthread_cleanup_push(worker_cleanup, NULL);
 
     while(ok >= 0 && !pglobal->stop) {
+    	input_data *frame = NULL;
         DBG("waiting for fresh frame\n");
         pthread_mutex_lock(&pglobal->in[input_number].db);
-        pthread_cond_wait(&pglobal->in[input_number].db_update, &pglobal->in[input_number].db);
+
+        if (!pglobal->in[input_number].db_frame)
+        	pthread_cond_wait(&pglobal->in[input_number].db_update, &pglobal->in[input_number].db);
 
         /* read buffer */
-        frame_size = pglobal->in[input_number].size;
-
-        /* check if buffer for frame is large enough, increase it if necessary */
-        if(frame_size > max_frame_size) {
-            DBG("increasing buffer size to %d\n", frame_size);
-
-            max_frame_size = frame_size + (1 << 16);
-            if((tmp_framebuffer = realloc(frame, max_frame_size)) == NULL) {
-                pthread_mutex_unlock(&pglobal->in[input_number].db);
-                LOG("not enough memory\n");
-                return NULL;
-            }
-
-            frame = tmp_framebuffer;
-        }
-
-        /* copy frame to our local buffer now */
-        memcpy(frame, pglobal->in[input_number].buf, frame_size);
+        frame = fifo_out(&pglobal->in[input_number].db_frame);
 
         /* allow others to access the global buffer again */
         pthread_mutex_unlock(&pglobal->in[input_number].db);
+
+        if (!frame) {
+        	fprintf(stderr, "empty frame\n");
+        	continue;
+        }
+
+        sleep(3);
 
         /* prepare filename */
         memset(buffer1, 0, sizeof(buffer1));
         memset(buffer2, 0, sizeof(buffer2));
 
-        /* get current time */
-        t = time(NULL);
-        now = localtime(&t);
+        /* get sample time */
+        now = localtime(&frame->t);
         if(now == NULL) {
             perror("localtime");
+            free(frame); frame = NULL;
             return NULL;
         }
 
         /* prepare string, add time and date values */
-        if(strftime(buffer1, sizeof(buffer1), "%%s/%Y_%m_%d_%H_%M_%S_picture_%%09llu.txt", now) == 0) {
+        if(strftime(buffer1, sizeof(buffer1), "%%s/%Y_%m_%d_%H_%M_%S_output_file_%%09llu.txt", now) == 0) {
             OPRINT("strftime returned 0\n");
             free(frame); frame = NULL;
             return NULL;
@@ -266,14 +260,15 @@ void *worker_thread(void *arg)
         }
 
         /* save picture to file */
-        if(write(fd, frame, frame_size) < 0) {
+        if(write(fd, frame->data, frame->len) < 0) {
             OPRINT("could not write to file %s\n", buffer2);
             perror("write()");
             close(fd);
             return NULL;
         }
-
         close(fd);
+
+        free(frame); frame = NULL;
 
         /* call the command if user specified one, pass current filename as argument */
         if(command != NULL) {

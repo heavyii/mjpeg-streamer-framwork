@@ -22,6 +22,7 @@
 
 #include <syslog.h>
 #include "../mjpg_streamer.h"
+#include "../fifo_list.h"
 #define INPUT_PLUGIN_PREFIX " i: "
 #define IPRINT(...) { char _bf[1024] = {0}; snprintf(_bf, sizeof(_bf)-1, __VA_ARGS__); fprintf(stderr, "%s", INPUT_PLUGIN_PREFIX); fprintf(stderr, "%s", _bf); syslog(LOG_INFO, "%s", _bf); }
 
@@ -33,6 +34,15 @@ struct _input_parameter {
     int argc;
     char *argv[MAX_PLUGIN_ARGUMENTS];
     struct _globals *global;
+};
+
+typedef struct _sample_data input_data;
+
+struct _sample_data {
+	int id; /* card id */
+	time_t t; /* sample time */
+	int len; /* data length */
+	unsigned char data[1]; /* data */
 };
 
 /* structure to store variables/functions for input plugin */
@@ -52,8 +62,7 @@ struct _input {
     pthread_cond_t  db_update;
 
     /* global data frame, this is more or less the "database" */
-    unsigned char *buf;
-    int size;
+    struct fifo_node *db_frame;
 
     int formatCount;
     int currentFormat; // holds the current format number

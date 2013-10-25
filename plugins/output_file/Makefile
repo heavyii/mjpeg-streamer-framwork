@@ -20,5 +20,5 @@ all: output_file.so
 clean:
 	rm -f *.a *.o core *~ *.so *.lo
 
-output_file.so: $(OTHER_HEADERS) output_file.c
-	$(CC) $(CFLAGS) -o $@ output_file.c
+output_file.so: $(OTHER_HEADERS) output_file.c ../../fifo_list.c
+	$(CC) $(CFLAGS) -o $@ output_file.c ../../fifo_list.c

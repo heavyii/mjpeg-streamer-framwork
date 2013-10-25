@@ -149,8 +149,6 @@ int input_stop(int id)
 
 int input_run(int id)
 {
-    pglobal->in[id].buf = NULL;
-
     rc = fd = inotify_init();
     if(rc == -1) {
         perror("could not initilialize inotify");
@@ -171,7 +169,6 @@ int input_run(int id)
     }
 
     if(pthread_create(&worker, 0, worker_thread, NULL) != 0) {
-        free(pglobal->in[id].buf);
         fprintf(stderr, "could not start worker thread\n");
         exit(EXIT_FAILURE);
     }
@@ -257,22 +254,29 @@ void *worker_thread(void *arg)
         pthread_mutex_lock(&pglobal->in[plugin_number].db);
 
         /* allocate memory for frame */
-        if(pglobal->in[plugin_number].buf != NULL) free(pglobal->in[plugin_number].buf);
-        pglobal->in[plugin_number].buf = malloc(filesize + (1 << 16));
-        if(pglobal->in[plugin_number].buf == NULL) {
+        input_data *frame = malloc(filesize + sizeof(input_data));
+        if(frame == NULL) {
             fprintf(stderr, "could not allocate memory\n");
             break;
         }
-
-        if((pglobal->in[plugin_number].size = read(file, pglobal->in[plugin_number].buf, filesize)) == -1) {
+        frame->id = 0;
+        frame->t = time(NULL);
+        if((frame->len = read(file, frame->data, filesize)) == -1) {
             perror("could not read from file");
-            free(pglobal->in[plugin_number].buf); pglobal->in[plugin_number].buf = NULL; pglobal->in[plugin_number].size = 0;
+            free(frame); frame = NULL;
             pthread_mutex_unlock(&pglobal->in[plugin_number].db);
             close(file);
             break;
         }
 
-        DBG("new frame copied (size: %d)\n", pglobal->in[plugin_number].size);
+        DBG("new frame copied (size: %d)\n", frame->len);
+        if (fifo_in(&pglobal->in[plugin_number].db_frame, frame) != 0) {
+            perror("could not put into fifo");
+            free(frame); frame = NULL;
+            pthread_mutex_unlock(&pglobal->in[plugin_number].db);
+            close(file);
+            break;
+        }
 
         /* signal fresh_frame */
         pthread_cond_broadcast(&pglobal->in[plugin_number].db_update);
@@ -309,8 +313,6 @@ void worker_cleanup(void *arg)
 
     first_run = 0;
     DBG("cleaning up ressources allocated by input thread\n");
-
-    if(pglobal->in[plugin_number].buf != NULL) free(pglobal->in[plugin_number].buf);
 
     free(ev);
 

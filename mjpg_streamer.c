@@ -290,8 +290,7 @@ int main(int argc, char *argv[])
 
         tmp = (size_t)(strchr(input[i], ' ') - input[i]);
         global.in[i].stop      = 0;
-        global.in[i].buf       = NULL;
-        global.in[i].size      = 0;
+        global.in[i].db_frame       = NULL;
         global.in[i].plugin = (tmp > 0) ? strndup(input[i], tmp) : strdup(input[i]);
         global.in[i].handle = dlopen(global.in[i].plugin, RTLD_LAZY);
         if(!global.in[i].handle) {
