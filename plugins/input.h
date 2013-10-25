@@ -35,20 +35,6 @@ struct _input_parameter {
     struct _globals *global;
 };
 
-typedef struct _input_resolution input_resolution;
-struct _input_resolution {
-    unsigned int width;
-    unsigned int height;
-};
-
-typedef struct _input_format input_format;
-struct _input_format {
-    struct v4l2_fmtdesc format;
-    input_resolution *supportedResolutions;
-    int resolutionCount;
-    char currentResolution;
-};
-
 /* structure to store variables/functions for input plugin */
 typedef struct _input input;
 struct _input {
@@ -61,21 +47,14 @@ struct _input {
     struct _control *in_parameters;
     int parametercount;
 
-
-    struct v4l2_jpegcompression jpegcomp;
-
     /* signal fresh frames */
     pthread_mutex_t db;
     pthread_cond_t  db_update;
 
-    /* global JPG frame, this is more or less the "database" */
+    /* global data frame, this is more or less the "database" */
     unsigned char *buf;
     int size;
 
-    /* v4l2_buffer timestamp */
-    struct timeval timestamp;
-
-    input_format *in_formats;
     int formatCount;
     int currentFormat; // holds the current format number
 

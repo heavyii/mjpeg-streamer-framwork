@@ -1,25 +1,3 @@
-/*******************************************************************************
-#                                                                              #
-#      MJPG-streamer allows to stream JPG frames from an input-plugin          #
-#      to several output plugins                                               #
-#                                                                              #
-#      Copyright (C) 2007 Tom Stöveken                                         #
-#                                                                              #
-# This program is free software; you can redistribute it and/or modify         #
-# it under the terms of the GNU General Public License as published by         #
-# the Free Software Foundation; version 2 of the License.                      #
-#                                                                              #
-# This program is distributed in the hope that it will be useful,              #
-# but WITHOUT ANY WARRANTY; without even the implied warranty of               #
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                #
-# GNU General Public License for more details.                                 #
-#                                                                              #
-# You should have received a copy of the GNU General Public License            #
-# along with this program; if not, write to the Free Software                  #
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA    #
-#                                                                              #
-*******************************************************************************/
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -172,11 +150,6 @@ int split_parameters(char *parameter_string, int *argc, char **argv)
     return 1;
 }
 
-/******************************************************************************
-Description.:
-Input Value.:
-Return Value:
-******************************************************************************/
 int main(int argc, char *argv[])
 {
     //char *input  = "input_uvc.so --resolution 640x480 --fps 5 --device /dev/video0";
@@ -185,7 +158,7 @@ int main(int argc, char *argv[])
     int daemon = 0, i;
     size_t tmp = 0;
 
-    output[0] = "output_http.so --port 8080";
+    output[0] = "output_file.so --help";
     global.outcnt = 0;
 
 
@@ -244,8 +217,8 @@ int main(int argc, char *argv[])
             printf("MJPG Streamer Version: %s\n" \
             "Compilation Date.....: %s\n" \
             "Compilation Time.....: %s\n",
-#ifdef SVN_REV
-            SVN_REV,
+#ifdef GIT_DATE
+            GIT_DATE,
 #else
             SOURCE_VERSION,
 #endif

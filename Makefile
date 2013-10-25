@@ -1,12 +1,3 @@
-###############################################################
-#
-# Purpose: Makefile for "M-JPEG Streamer"
-# Author.: Tom Stoeveken (TST)
-# Version: 0.4
-# License: GPL
-#
-###############################################################
-
 # specifies where to install the binaries after compilation
 # to use another directory you can specify it with:
 # $ sudo make DESTDIR=/some/path install
@@ -16,7 +7,7 @@ DESTDIR = ./INSTALL
 
 #CC=arm-linux-gcc
 
-SVNDEV := -D'SVN_REV="2013/10/25 v1.0"'
+SVNDEV := -D'GIT_DATE="$(shell git log | grep Date | head -n 1)"'
 CFLAGS += $(SVNDEV)
 
 # general compile flags, enable all warnings to make compile more verbose
